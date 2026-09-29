@@ -13,7 +13,17 @@ Extra agent writes not in ground truth:
   DUPLICATE    identical to a write it already made
   UNWANTED     a write the task didn't ask for
 
-Usage: python toolcard.py <trajectories.json> [...]   -> REPORT.md + rows.jsonl
+Usage: python toolcard.py [--tau2 path/to/tau2-bench] [--ordered] <results.json> [...]  -> REPORT.md + rows.jsonl
+
+Which tools count as writes: tau2-bench marks each tool READ, WRITE, THINK or GENERIC in its source
+(@is_tool(ToolType.WRITE)). Its result files don't carry those types, so:
+  --tau2 <repo>  reads the types from the tau2-bench source (recommended), and
+  without it, the built-in lists below are used. They match tau2-bench's source as of Sept 2026.
+Either way, any tool name in the data that isn't a known tool stops the run with an error, so a new or
+renamed write can't silently go ungraded.
+
+List arguments are compared as unordered by default (e.g. the passengers on a booking). --ordered compares
+them in order. On the published runs both give the same results; see README.
 """
 from __future__ import annotations
 
@@ -23,21 +33,67 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
-WRITES = {
-    # retail
-    "cancel_pending_order", "exchange_delivered_order_items", "modify_pending_order_address",
-    "modify_pending_order_items", "modify_pending_order_payment", "modify_user_address",
-    "return_delivered_order_items",
-    # airline
-    "book_reservation", "cancel_reservation", "update_reservation_baggages",
-    "update_reservation_flights", "update_reservation_passengers", "send_certificate",
+BUILTIN = {  # tool -> type, from tau2-bench src/tau2/domains/<domain>/tools.py
+    "airline": {"book_reservation": "WRITE", "cancel_reservation": "WRITE", "send_certificate": "WRITE",
+                "update_reservation_baggages": "WRITE", "update_reservation_flights": "WRITE",
+                "update_reservation_passengers": "WRITE", "get_reservation_details": "READ",
+                "get_user_details": "READ", "list_all_airports": "READ", "search_direct_flight": "READ",
+                "search_onestop_flight": "READ", "get_flight_status": "READ", "calculate": "GENERIC",
+                "transfer_to_human_agents": "GENERIC", "think": "THINK"},
+    "retail": {"cancel_pending_order": "WRITE", "exchange_delivered_order_items": "WRITE",
+               "modify_pending_order_address": "WRITE", "modify_pending_order_items": "WRITE",
+               "modify_pending_order_payment": "WRITE", "modify_user_address": "WRITE",
+               "return_delivered_order_items": "WRITE", "find_user_id_by_name_zip": "READ",
+               "find_user_id_by_email": "READ", "get_order_details": "READ", "get_product_details": "READ",
+               "get_item_details": "READ", "get_user_details": "READ", "list_all_product_types": "READ",
+               "calculate": "GENERIC", "transfer_to_human_agents": "GENERIC", "think": "THINK"},
 }
+ORDERED = False  # set by --ordered
+
+
+def tool_types(tau2_root) -> dict:
+    """{domain: {tool: type}} read from the tau2-bench source, for every domain it has."""
+    import re
+    out = {}
+    for f in sorted(Path(tau2_root, "src", "tau2", "domains").glob("*/tools.py")):
+        src = f.read_text(encoding="utf-8")
+        found = re.findall(r"^\s*@is_tool\(\s*ToolType\.(\w+)[^)]*\)\s*\n\s*def (\w+)", src, re.M)
+        if found:
+            out[f.parent.name] = {name: kind for kind, name in found}
+    if not out:
+        raise SystemExit(f"no tools found under {tau2_root}/src/tau2/domains: is that a tau2-bench checkout?")
+    return out
+
+
+class UnknownTools(Exception):
+    pass
+
+
+def check_coverage(types: dict, seen: dict) -> None:
+    """seen: {domain: set of tool names in the data}. Fails loudly on anything the grader doesn't know."""
+    problems = []
+    for domain, names in sorted(seen.items()):
+        known = types.get(domain)
+        if known is None:
+            problems.append(f"domain '{domain}' has no tool list")
+            continue
+        missing = sorted(n for n in names if n not in known)
+        if missing:
+            problems.append(f"{domain}: {', '.join(missing)}")
+    if problems:
+        raise UnknownTools("toolcard doesn't know these tools, so it can't tell if they're writes: "
+                           + "; ".join(problems) + ". Pass --tau2 <tau2-bench checkout> or update BUILTIN.")
+
+
+WRITES = {t for tools in BUILTIN.values() for t, k in tools.items() if k == "WRITE"}  # all domains
 TARGET_KEYS = ("order_id", "reservation_id", "user_id")
 
 
 def norm(v):
     if isinstance(v, list):
         items = [norm(x) for x in v]
+        if ORDERED:
+            return items
         try:
             return sorted(items, key=lambda x: json.dumps(x, sort_keys=True))
         except TypeError:
@@ -101,8 +157,9 @@ def diff_keys(want: dict, got: dict):
     return [k for k in keys if want.get(k) != got.get(k)]
 
 
-def grade(ep):
+def grade(ep, writes_set=None):
     """ep: {"actions": [{"name", "kwargs", "compare"}], "traj": [...]} -> (rows, tool errors)"""
+    WRITES = writes_set if writes_set is not None else globals()["WRITES"]
     gt = [(a["name"], norm(a["kwargs"]), a.get("compare")) for a in ep["actions"] if a["name"] in WRITES]
     calls = agent_calls(ep["traj"])
     writes = [(n, a) for n, a, rej in calls if n in WRITES and not rej]
@@ -175,7 +232,14 @@ def load(path):
     raw = json.load(open(path))
     stem = Path(path).stem
     if isinstance(raw, dict) and "simulations" in raw:  # tau2-bench
-        model, domain = stem.split("_")[0], stem.split("_")[1]
+        info = raw.get("info") or {}
+        model = ((info.get("agent_info") or {}).get("llm") or "").strip()
+        domain = ((info.get("environment_info") or {}).get("domain_name") or "").strip()
+        if not model or not domain:  # older files: <model>_<domain>_..., model names use "-" not "_"
+            parts = stem.split("_")
+            if len(parts) < 2:
+                raise ValueError(f"can't tell model and domain from {path}")
+            model, domain = model or parts[0], domain or parts[1]
         tasks = {t["id"]: t for t in raw["tasks"]}
         for s in raw["simulations"]:
             crit = tasks[s["task_id"]].get("evaluation_criteria") or {}
@@ -202,20 +266,38 @@ def load(path):
                                   "traj": ep["traj"], "ref_ok": ep["reward"] == 1}
 
 
-def main(paths):
+def main(argv):
+    global ORDERED
+    args, types, paths = list(argv), BUILTIN, []
+    while args:
+        a = args.pop(0)
+        if a == "--tau2":
+            types = tool_types(args.pop(0))
+        elif a == "--ordered":
+            ORDERED = True
+        else:
+            paths.append(a)
+    if not paths:
+        raise SystemExit(__doc__)
     out = Path(__file__).resolve().parent / "out"
     out.mkdir(exist_ok=True)
+    loaded = [(m, d, ep) for p in paths for m, d, ep in load(p)]
+    seen = defaultdict(set)
+    for _, d, ep in loaded:
+        seen[d].update(a["name"] for a in ep["actions"])
+        seen[d].update(n for n, _, _ in agent_calls(ep["traj"]))
+    check_coverage(types, seen)
+    writes = {d: {t for t, k in types[d].items() if k == "WRITE"} for d in seen}
     rows, errs, eps = [], [], []
-    for p in paths:
-        for model, domain, ep in load(p):
-            r, e = grade(ep)
-            fail = any(x["cat"] not in ("OK", "REJECTED") for x in r)
-            eps.append({"model": model, "domain": domain, "task": ep["task_id"], "trial": ep["trial"],
-                        "ref_ok": ep["ref_ok"], "write_fail": fail})
-            for x in r:
-                rows.append({"model": model, "domain": domain, "task": ep["task_id"], "trial": ep["trial"], **x})
-            for t, msg in e:
-                errs.append({"model": model, "tool": t, "msg": msg})
+    for model, domain, ep in loaded:
+        r, e = grade(ep, writes[domain])
+        fail = any(x["cat"] not in ("OK", "REJECTED") for x in r)
+        eps.append({"model": model, "domain": domain, "task": ep["task_id"], "trial": ep["trial"],
+                    "ref_ok": ep["ref_ok"], "write_fail": fail})
+        for x in r:
+            rows.append({"model": model, "domain": domain, "task": ep["task_id"], "trial": ep["trial"], **x})
+        for t, msg in e:
+            errs.append({"model": model, "tool": t, "msg": msg})
     with open(out / "rows.jsonl", "w") as f:
         for r in rows:
             f.write(json.dumps(r) + "\n")
@@ -246,7 +328,7 @@ def report(rows, errs, eps, path):
     L += ["## Per tool", "", "| tool | model | required | correct | wrong args | wrong tool | handed off | missed | most common reason |",
           "|---|---|---|---|---|---|---|---|---|"]
     by = group([r for r in rows if r["cat"] not in ("DUPLICATE", "UNWANTED", "REJECTED")], ("tool", "model"))
-    order = sorted({t for t, _ in by}, key=lambda t: -sum(len(by.get((t, m), [])) for m in models))
+    order = sorted({t for t, _ in by}, key=lambda t: (-sum(len(by.get((t, m), [])) for m in models), t))
     for t in order:
         for m in models:
             g = by.get((t, m), [])
@@ -270,7 +352,7 @@ def report(rows, errs, eps, path):
     # extras
     L += ["", "## Writes nobody asked for (and writes the tool refused)", "", "| tool | model | unwanted | duplicate | refused by tool |", "|---|---|---|---|---|"]
     ex = Counter((r["tool"], r["model"], r["cat"]) for r in rows if r["cat"] in ("DUPLICATE", "UNWANTED", "REJECTED"))
-    for t, m in sorted({(t, m) for t, m, _ in ex}, key=lambda k: -(ex[(k[0], k[1], 'UNWANTED')] + ex[(k[0], k[1], 'DUPLICATE')])):
+    for t, m in sorted({(t, m) for t, m, _ in ex}, key=lambda k: (-(ex[(k[0], k[1], 'UNWANTED')] + ex[(k[0], k[1], 'DUPLICATE')]), k)):
         L.append(f"| `{t}` | {m} | {ex[(t, m, 'UNWANTED')]} | {ex[(t, m, 'DUPLICATE')]} | {ex[(t, m, 'REJECTED')]} |")
 
     # tool errors

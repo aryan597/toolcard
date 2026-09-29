@@ -64,14 +64,14 @@ tasks where the right move was no write at all.
 | `update_reservation_baggages` | gpt-4.1-2025-04-14 | 24 | 29% (15-49) | 11 | 2 | 0 | 4 | wrong args: nonfree_baggages (8) |
 | `update_reservation_baggages` | gpt-4.1-mini-2025-04-14 | 24 | 33% (18-53) | 12 | 0 | 0 | 4 | wrong args: nonfree_baggages (11) |
 | `update_reservation_baggages` | o4-mini-2025-04-16 | 24 | 29% (15-49) | 12 | 0 | 2 | 3 | wrong args: payment_id (6) |
-| `update_reservation_passengers` | claude-3-7-sonnet-20250219 | 12 | 75% (47-91) | 0 | 0 | 0 | 3 | missed (3) |
-| `update_reservation_passengers` | gpt-4.1-2025-04-14 | 12 | 67% (39-86) | 0 | 0 | 0 | 4 | missed (4) |
-| `update_reservation_passengers` | gpt-4.1-mini-2025-04-14 | 12 | 75% (47-91) | 1 | 0 | 0 | 2 | missed (2) |
-| `update_reservation_passengers` | o4-mini-2025-04-16 | 12 | 75% (47-91) | 1 | 0 | 1 | 1 | handed off: transferred to human (1) |
 | `send_certificate` | claude-3-7-sonnet-20250219 | 12 | 67% (39-86) | 0 | 0 | 4 | 0 | handed off: transferred to human (4) |
 | `send_certificate` | gpt-4.1-2025-04-14 | 12 | 25% (9-53) | 3 | 0 | 2 | 4 | missed (4) |
 | `send_certificate` | gpt-4.1-mini-2025-04-14 | 12 | 83% (55-95) | 1 | 0 | 1 | 0 | wrong args: amount (1) |
 | `send_certificate` | o4-mini-2025-04-16 | 12 | 33% (14-61) | 2 | 0 | 5 | 1 | handed off: transferred to human (5) |
+| `update_reservation_passengers` | claude-3-7-sonnet-20250219 | 12 | 75% (47-91) | 0 | 0 | 0 | 3 | missed (3) |
+| `update_reservation_passengers` | gpt-4.1-2025-04-14 | 12 | 67% (39-86) | 0 | 0 | 0 | 4 | missed (4) |
+| `update_reservation_passengers` | gpt-4.1-mini-2025-04-14 | 12 | 75% (47-91) | 1 | 0 | 0 | 2 | missed (2) |
+| `update_reservation_passengers` | o4-mini-2025-04-16 | 12 | 75% (47-91) | 1 | 0 | 1 | 1 | handed off: transferred to human (1) |
 | `modify_pending_order_payment` | claude-3-7-sonnet-20250219 | 4 | 100% (51-100) | 0 | 0 | 0 | 0 | - |
 | `modify_pending_order_payment` | gpt-4.1-2025-04-14 | 4 | 100% (51-100) | 0 | 0 | 0 | 0 | - |
 | `modify_pending_order_payment` | gpt-4.1-mini-2025-04-14 | 4 | 100% (51-100) | 0 | 0 | 0 | 0 | - |
@@ -109,40 +109,40 @@ tasks where the right move was no write at all.
 | `update_reservation_flights` | gpt-4.1-mini-2025-04-14 | 12 | 1 | 20 |
 | `cancel_reservation` | o4-mini-2025-04-16 | 12 | 0 | 0 |
 | `cancel_pending_order` | gpt-4.1-2025-04-14 | 10 | 0 | 0 |
-| `send_certificate` | claude-3-7-sonnet-20250219 | 9 | 0 | 0 |
 | `cancel_pending_order` | gpt-4.1-mini-2025-04-14 | 9 | 0 | 0 |
+| `send_certificate` | claude-3-7-sonnet-20250219 | 9 | 0 | 0 |
 | `return_delivered_order_items` | claude-3-7-sonnet-20250219 | 8 | 0 | 19 |
-| `send_certificate` | gpt-4.1-2025-04-14 | 5 | 0 | 1 |
 | `return_delivered_order_items` | o4-mini-2025-04-16 | 5 | 0 | 11 |
-| `update_reservation_flights` | gpt-4.1-2025-04-14 | 4 | 0 | 10 |
+| `send_certificate` | gpt-4.1-2025-04-14 | 5 | 0 | 1 |
 | `modify_user_address` | gpt-4.1-2025-04-14 | 1 | 3 | 0 |
 | `return_delivered_order_items` | gpt-4.1-2025-04-14 | 4 | 0 | 8 |
-| `update_reservation_baggages` | gpt-4.1-mini-2025-04-14 | 1 | 2 | 10 |
+| `update_reservation_flights` | gpt-4.1-2025-04-14 | 4 | 0 | 10 |
 | `book_reservation` | claude-3-7-sonnet-20250219 | 3 | 0 | 3 |
-| `update_reservation_flights` | o4-mini-2025-04-16 | 3 | 0 | 5 |
 | `book_reservation` | o4-mini-2025-04-16 | 3 | 0 | 4 |
-| `modify_pending_order_address` | claude-3-7-sonnet-20250219 | 2 | 0 | 0 |
-| `exchange_delivered_order_items` | claude-3-7-sonnet-20250219 | 2 | 0 | 13 |
-| `send_certificate` | o4-mini-2025-04-16 | 2 | 0 | 0 |
+| `update_reservation_baggages` | gpt-4.1-mini-2025-04-14 | 1 | 2 | 10 |
+| `update_reservation_flights` | o4-mini-2025-04-16 | 3 | 0 | 5 |
 | `book_reservation` | gpt-4.1-mini-2025-04-14 | 2 | 0 | 30 |
+| `exchange_delivered_order_items` | claude-3-7-sonnet-20250219 | 2 | 0 | 13 |
+| `modify_pending_order_address` | claude-3-7-sonnet-20250219 | 2 | 0 | 0 |
 | `return_delivered_order_items` | gpt-4.1-mini-2025-04-14 | 2 | 0 | 31 |
-| `modify_pending_order_address` | gpt-4.1-mini-2025-04-14 | 0 | 1 | 2 |
-| `modify_pending_order_address` | o4-mini-2025-04-16 | 1 | 0 | 1 |
+| `send_certificate` | o4-mini-2025-04-16 | 2 | 0 | 0 |
+| `book_reservation` | gpt-4.1-2025-04-14 | 1 | 0 | 2 |
+| `cancel_pending_order` | o4-mini-2025-04-16 | 1 | 0 | 0 |
 | `exchange_delivered_order_items` | gpt-4.1-2025-04-14 | 1 | 0 | 24 |
 | `exchange_delivered_order_items` | gpt-4.1-mini-2025-04-14 | 1 | 0 | 64 |
-| `update_reservation_baggages` | o4-mini-2025-04-16 | 1 | 0 | 0 |
-| `cancel_pending_order` | o4-mini-2025-04-16 | 1 | 0 | 0 |
-| `book_reservation` | gpt-4.1-2025-04-14 | 1 | 0 | 2 |
+| `modify_pending_order_address` | gpt-4.1-mini-2025-04-14 | 0 | 1 | 2 |
+| `modify_pending_order_address` | o4-mini-2025-04-16 | 1 | 0 | 1 |
 | `modify_user_address` | gpt-4.1-mini-2025-04-14 | 0 | 1 | 0 |
 | `update_reservation_baggages` | claude-3-7-sonnet-20250219 | 1 | 0 | 0 |
-| `modify_pending_order_items` | claude-3-7-sonnet-20250219 | 0 | 0 | 18 |
-| `update_reservation_passengers` | gpt-4.1-mini-2025-04-14 | 0 | 0 | 1 |
+| `update_reservation_baggages` | o4-mini-2025-04-16 | 1 | 0 | 0 |
 | `exchange_delivered_order_items` | o4-mini-2025-04-16 | 0 | 0 | 12 |
-| `update_reservation_baggages` | gpt-4.1-2025-04-14 | 0 | 0 | 4 |
-| `modify_pending_order_payment` | gpt-4.1-mini-2025-04-14 | 0 | 0 | 2 |
-| `modify_pending_order_items` | gpt-4.1-mini-2025-04-14 | 0 | 0 | 35 |
+| `modify_pending_order_items` | claude-3-7-sonnet-20250219 | 0 | 0 | 18 |
 | `modify_pending_order_items` | gpt-4.1-2025-04-14 | 0 | 0 | 38 |
+| `modify_pending_order_items` | gpt-4.1-mini-2025-04-14 | 0 | 0 | 35 |
 | `modify_pending_order_items` | o4-mini-2025-04-16 | 0 | 0 | 1 |
+| `modify_pending_order_payment` | gpt-4.1-mini-2025-04-14 | 0 | 0 | 2 |
+| `update_reservation_baggages` | gpt-4.1-2025-04-14 | 0 | 0 | 4 |
+| `update_reservation_passengers` | gpt-4.1-mini-2025-04-14 | 0 | 0 | 1 |
 
 ## Errors the tools returned
 
